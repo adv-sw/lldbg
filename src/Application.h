@@ -19,9 +19,10 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl2.h"
+#include "backends/imgui_impl_opengl3.h"
 // clang-format on
 
+#define GLEW_STATIC 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -78,7 +79,7 @@ typedef std::list<Virtual_Value> Virtual_Values;
 
 struct Thread
 {
-   Thread(uint32_t id, const char *name) { m_id = id; m_name = name ? strdup(name) : nullptr; } 
+   Thread(uint32_t id, const char *name) { m_id = id; m_name = name ? _strdup(name) : nullptr; } 
    ~Thread() { if (m_name) free(m_name); }
 
    uint32_t m_id;
@@ -111,7 +112,7 @@ struct Application
     void State_Sync(std::optional<lldb::SBProcess> process, lldb::SBThread &th);
     void Config_Save();
     void Config_Load();
-    uint32_t Breakpoint_Locate(lldb::SBTarget target, const char *file, uint32_t line);
+    size_t Breakpoint_Locate(lldb::SBTarget target, const char *file, uint32_t line);
 
     lldb::SBValueList m_locals;
     lldb::SBValueList m_globals;

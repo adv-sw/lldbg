@@ -8,6 +8,11 @@
 // clang-format on
 
 
+#ifndef UNUSED
+#define UNUSED(...) (void)(0, ##__VA_ARGS__)
+#endif
+
+
 // We work from description bcoz that is available for resolved & unresolved breakpoints.
 void Breakpoint_Info(lldb::SBBreakpoint bp, std::string &file,  size_t &file_line, size_t &bp_id)
 {
@@ -108,7 +113,7 @@ TextEditor::Markers BP_Get(lldb::SBTarget target, const Stack_Frames &stack_fram
 
             auto bp_state = location.IsValid() ? 1 : 2;
 
-            markers.insert(TextEditor::Marker(candidate_file_line, bp_state == 1 ? "b" : "p")); // b = resolved, p = pending.
+            markers.insert(TextEditor::Marker((int) candidate_file_line, bp_state == 1 ? "b" : "p")); // b = resolved, p = pending.
         }
     }
 
@@ -124,15 +129,15 @@ TextEditor::Markers BP_Get(lldb::SBTarget target, const Stack_Frames &stack_fram
 
             if (fp == file)
             {
-               auto it = markers.find(frame->line);
+               auto marker_it = markers.find(frame->line);
 
                std::string id("a");
                id += std::to_string(level);
 
-               if (it == markers.end())
+               if (marker_it == markers.end())
                   markers.insert(TextEditor::Marker(frame->line, id)); // a = active.
                else
-                  (*it).second.append(id);
+                  (*marker_it).second.append(id);
             }
         }
     }
@@ -145,7 +150,7 @@ std::optional<int> FileViewer::Render(lldb::SBTarget target, const Stack_Frames 
 {
     ImGuiContext& g = *GImGui;
     auto &style = g.Style;
-    ImGuiWindow* window = g.CurrentWindow;
+    //ImGuiWindow* window = g.CurrentWindow;
 
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, style.Colors[ImGuiCol_TitleBg]);
     Defer(ImGui::PopStyleColor());
@@ -196,6 +201,7 @@ std::optional<int> FileViewer::Render(lldb::SBTarget target, const Stack_Frames 
 
 void FileViewer::Optimize_Breakpoints(lldb::SBTarget target)
 {
+   UNUSED(target);
    // TODO :)
 }
 

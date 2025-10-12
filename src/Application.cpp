@@ -1,12 +1,14 @@
 // Optional sanitizer to simplify debugging of wasmtime client code.
 #define LLDBG_FILTER_WASMTIME   1
 
+// Silence low priorty warnings
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include "Application.h"
 #include "Defer.hpp"
 #include "Log.hpp"
 #include "StringBuffer.hpp"
 #include "fmt/format.h"
-
 
 #if LLDBG_FILTER_WASMTIME
 #define ENABLE_REGISTERS 0 
@@ -26,15 +28,18 @@
 const float vertical_split_margin = 10.0f;
 
 #ifdef _WIN32
-// Required for platform specific functionality not provided by ImGUI.
 #include <windows.h>
+// TODO: Get these working with standard cmake system then can be removed.
+#pragma comment(lib, "imgui.lib")
+#pragma comment(lib, "Z:\\dev_public\\glew\\lib\\Release\\x64\\glew32s.lib")
 #endif
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-void BringWindowToTop(Application &app);
+
+void BringWindowToTop();
 void Breakpoint_Info(lldb::SBBreakpoint bp, std::string &file,  size_t &file_line, size_t &bp_id);
 
 extern bool __debugger_live;
@@ -43,8 +48,6 @@ namespace fs = std::filesystem;
 
 static std::map<std::string, std::string> s_debug_stream;
 
-
-#pragma comment(lib, "liblldb.lib")
 
 
 std::string Hex(size_t value)
@@ -73,9 +76,11 @@ std::string Hex(const char *int_str)
 }
 
 
-inline void remove_last_path_component(std::string &path)
-{
-   path.substr(0, path.find_last_of("\\/"));
+inline void remove_last_path_component(std::string& path) {
+   size_t pos = path.find_last_of("\\/");
+   if (pos != std::string::npos) {
+      path.resize(pos);
+   }
 }
 
 
@@ -259,6 +264,7 @@ Stack_Frame *Stack_Frame::create(lldb::SBFrame frame)
 }
 
 
+#if 0
 static bool FileTreeNode(const char* label)
 {
     ImGuiContext& g = *GImGui;
@@ -296,6 +302,7 @@ static bool FileTreeNode(const char* label)
 
     return opened;
 }
+#endif
 
 
 static bool Splitter(const char* name, bool split_vertically, float thickness, float* size1,
@@ -334,7 +341,7 @@ static std::optional<lldb::SBTarget> find_target(lldb::SBDebugger &debugger)
 }
 
 
-uint32_t Application::Breakpoint_Locate(lldb::SBTarget target, const char *file, uint32_t bp_line)
+size_t Application::Breakpoint_Locate(lldb::SBTarget target, const char *file, uint32_t bp_line)
 {
     auto num_bp = target.GetNumBreakpoints();
 
@@ -404,7 +411,7 @@ static void SourceView_Draw(Application &app)
                        const fs::path filepath = focus_handle->filepath();
                        StringBuffer breakpoint_command;
 
-                       uint32_t found_index = found_index = app.Breakpoint_Locate(target.value(), filepath.string().c_str(), *clicked_line);
+                       size_t found_index = app.Breakpoint_Locate(target.value(), filepath.string().c_str(), *clicked_line);
 
                         if (found_index > 0)
                         {
@@ -654,7 +661,7 @@ static void Target_Select(Application &app, LLDBCommandLine &cmdline,
         lldb::SBLaunchInfo linfo = target.value().GetLaunchInfo();
         auto count = linfo.GetNumArguments();
         std::string target_params;
-        for (auto i=0;i < count; i++)
+        for (uint32_t i=0;i < count; i++)
         {
             if (i != 0)
                target_params += " ";
@@ -1197,7 +1204,7 @@ static void draw_threads(std::list<Thread*> &threads, User_Interface &ui, float 
 
 
 static void draw_stack_trace(std::list<Stack_Frame *> &stack_frame, User_Interface &ui, OpenFiles &open_files,
-                             lldb::SBDebugger &dbg, float stack_height)
+                             float stack_height)
 {
     ImGui::BeginChild("#StackTraceChild", ImVec2(0, stack_height));
 
@@ -1924,7 +1931,7 @@ static void draw_breakpoints_and_watchpoints(User_Interface &ui, OpenFiles& open
     ImGui::EndChild();
 }
 
-
+#if 0
 static void draw_diagnostics_popup(User_Interface &ui)
 {
     ImGui::SetNextWindowPos(ImVec2(ui.window_width / 2.f, ui.window_height / 2.f), ImGuiCond_FirstUseEver);
@@ -1946,6 +1953,7 @@ static void draw_diagnostics_popup(User_Interface &ui)
 
     ImGui::End();
 }
+#endif
 
 
 __attribute__((flatten)) static void draw(Application &app)
@@ -2071,7 +2079,7 @@ __attribute__((flatten)) static void draw(Application &app)
         const float stack_height = (ui.window_height - 2 * ImGui::GetFrameHeightWithSpacing()) / 4;
 
         draw_threads(app.m_threads, ui, stack_height, ui.vertical_split_2_position);
-        draw_stack_trace(app.m_frames, ui, open_files, app.m_debugger, stack_height);
+        draw_stack_trace(app.m_frames, ui, open_files, stack_height);
         app.Display_Variables_Registers(stack_height);
         draw_breakpoints_and_watchpoints(ui, open_files, find_target(app.m_debugger), stack_height);
 
@@ -2131,8 +2139,8 @@ void Application::State_Sync(std::optional<lldb::SBProcess> _process, lldb::SBTh
 
    for (uint32_t i = 0; i < viewed_thread.GetNumFrames(); i++) 
    {
-      auto frame = Stack_Frame::create(viewed_thread.GetFrameAtIndex(i));
-      m_frames.push_back(frame);
+      auto new_frame = Stack_Frame::create(viewed_thread.GetFrameAtIndex(i));
+      m_frames.push_back(new_frame);
    }
 
 
@@ -2200,7 +2208,7 @@ void Application::Handle_Events()
             // For now we find the first (if any) stopped thread and construct a StopInfo.
             if (new_state == lldb::eStateStopped) 
             {
-                BringWindowToTop(*this);
+                BringWindowToTop();
 
                 const uint32_t nthreads = process->GetNumThreads();
                 
@@ -2220,9 +2228,9 @@ void Application::Handle_Events()
                         case lldb::eStopReasonBreakpoint: 
                         {
                             // https://lldb.llvm.org/cpp_reference/classlldb_1_1SBThread.html#af284261156e100f8d63704162f19ba76
-                            
-                            auto dc = th.GetStopReasonDataCount();
-                            assert(dc >= 2);
+
+
+                            assert(th.GetStopReasonDataCount(); >= 2);
                             lldb::break_id_t breakpoint_id = (lldb::break_id_t) th.GetStopReasonDataAtIndex(0);
                             lldb::SBBreakpoint breakpoint =
                                 target->FindBreakpointByID(breakpoint_id);
@@ -2242,7 +2250,7 @@ void Application::Handle_Events()
 
                         case lldb::eStopReasonPlanComplete: 
                         {
-                            auto dc = th.GetStopReasonDataCount();
+                            //auto dc = th.GetStopReasonDataCount();
                             auto f = th.GetSelectedFrame();
                             auto le = f.GetLineEntry();
 
@@ -2523,6 +2531,13 @@ std::optional<User_Interface> User_Interface::init(void)
     if (glfwInit() != GLFW_TRUE) 
         return {};
 
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
+#endif
+
 #ifdef WIN32
     RECT rect { 0,0,0,0 };
     SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
@@ -2536,18 +2551,18 @@ std::optional<User_Interface> User_Interface::init(void)
      
     ui.window = glfwCreateWindow(window_width-20, window_height, "lldbg", nullptr, nullptr);
 
-#ifdef WIN32
-    glfwMaximizeWindow(ui.window);
-#endif
-
     if (!ui.window) 
     {
         glfwTerminate();
         return {};
     }
 
-    ui.window_width  = window_width;
-    ui.window_height = window_height;
+#ifdef WIN32
+    glfwMaximizeWindow(ui.window);
+#endif
+
+    ui.window_width  = (float)  window_width;
+    ui.window_height = (float) window_height;
 
     ui.m_column_1_width  = ui.window_width * 0.15f;
     ui.m_column_2_width  = ui.window_width * 0.6f;
@@ -2585,9 +2600,10 @@ std::optional<User_Interface> User_Interface::init(void)
     ui.font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 15.0f);
 
     ImGui::StyleColorsDark();
-    ImGuiStyle &style = ImGui::GetStyle();
 
 #if 0
+    ImGuiStyle& style = ImGui::GetStyle();
+
     // Fast mode - all rounding off.
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
@@ -2599,7 +2615,7 @@ std::optional<User_Interface> User_Interface::init(void)
 #endif
 
     ImGui_ImplGlfw_InitForOpenGL(ui.window, true);
-    ImGui_ImplOpenGL2_Init();
+    ImGui_ImplOpenGL3_Init();
 
     return ui;
 }
@@ -2643,7 +2659,7 @@ Application::~Application()
         LOG(Warning) << "Found invalid lldb::SBDebugger while closing application.";
     }
 
-    ImGui_ImplOpenGL2_Shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     glfwDestroyWindow(ui.window);
@@ -2657,7 +2673,7 @@ int main_loop(Application &app)
     {
         glfwPollEvents();
 
-        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
@@ -2669,7 +2685,7 @@ int main_loop(Application &app)
         static const ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glFinish();
 
@@ -2715,13 +2731,13 @@ int main_loop(Application &app)
 #ifdef _WIN32
 HWND GetNativeWindow()
 {
-   ImGuiIO &io = ImGui::GetIO();
-   return (HWND) io.ImeWindowHandle;
+   ImGuiViewport* viewport = ImGui::GetMainViewport();
+   return (HWND)viewport->PlatformHandleRaw;
 }
 #endif
 
 
-void BringWindowToTop(Application &app)
+void BringWindowToTop()
 {
 #ifdef _WIN32
    HWND hwnd = GetNativeWindow();

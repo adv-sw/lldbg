@@ -14,6 +14,7 @@
 #include "imgui.h"
 #include "lldb/API/LLDB.h"
 
+
 bool __debugger_live = false;
 
 void zap_debugger()
@@ -68,7 +69,7 @@ int main(int argc, char** argv)
     }
 
     __debugger_live = true;
-    Defer(zap_debugger);
+    Defer(zap_debugger());
 
     auto ui = User_Interface::init();
     if (!ui.has_value()) 
