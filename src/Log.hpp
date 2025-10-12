@@ -7,17 +7,12 @@
 #include <unordered_map>
 #include <vector>
 
-// TODO: modify to include file/function/line information?
-// also include lldb version/commit number?
+// TODO: Modify to include file/function/line information ?
+//       also include lldb version/commit number ?
 #define LOG(LEV) LogMessageStream(LogLevel::LEV)
 
-enum class LogLevel {
-    Debug = 80,
-    Verbose = 60,
-    Info = 40,
-    Warning = 20,
-    Error = 0,
-};
+enum class LogLevel { Verbose, Debug, Info, Warning, Error };
+
 
 struct LogMessage {
     const LogLevel level;
@@ -25,6 +20,7 @@ struct LogMessage {
 
     LogMessage(LogLevel level, const std::string& message) : level(level), message(message) {}
 };
+
 
 class Logger {
     std::vector<LogMessage> m_messages;
@@ -34,7 +30,7 @@ class Logger {
     static std::mutex s_mutex;
 
 public:
-    static Logger* get_instance(void)
+    static Logger *get_instance(void)
     {
         std::unique_lock<std::mutex> lock(s_mutex);
         if (!s_instance) {
@@ -65,18 +61,6 @@ public:
         }
     };
 
-    void set_log_level(int level)
-    {
-        std::unique_lock<std::mutex> lock(s_mutex);
-        m_log_level = level;
-    }
-
-    int get_log_level()
-    {
-        std::unique_lock<std::mutex> lock(s_mutex);
-        return m_log_level;
-    }
-
     template <typename MessageHandlerFunc>
     void for_each_message(MessageHandlerFunc&& f)
     {
@@ -91,12 +75,10 @@ public:
         std::unique_lock<std::mutex> lock(s_mutex);
         return m_messages.size();
     }
-
-private:
-    int m_log_level = (int)LogLevel::Debug;
 };
 
-class LogMessageStream {
+class LogMessageStream 
+{
     const LogLevel level;
     std::ostringstream oss;
 
@@ -112,10 +94,8 @@ public:
 
     ~LogMessageStream()
     {
-        if (Logger::get_instance()->get_log_level() >= (int)level) {
-            oss << std::endl;
-            Logger::get_instance()->log(level, oss.str());
-        }
-    }
+        oss << std::endl;
+        Logger::get_instance()->log(level, oss.str());
+    };
 };
 

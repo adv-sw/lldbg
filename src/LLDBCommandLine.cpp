@@ -13,6 +13,7 @@ LLDBCommandLine::LLDBCommandLine(lldb::SBDebugger& debugger)
     run_command("settings set target.x86-disassembly-flavor intel", true);
 }
 
+
 lldb::SBCommandReturnObject LLDBCommandLine::run_command(const char* command,
                                                          bool hide_from_history)
 {
@@ -40,7 +41,7 @@ lldb::SBCommandReturnObject LLDBCommandLine::run_command(const char* command,
             entry.error_msg = std::string(ret.GetError());
         }
         else {
-            entry.error_msg = "Unknown failure reason!";
+            entry.error_msg = "Unknown failure.";
         }
     }
 
