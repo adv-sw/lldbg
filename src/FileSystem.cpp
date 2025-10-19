@@ -1,10 +1,15 @@
+// TODO: Upgrade fmt v9  to fmt v11.0+ replaced with std::span for C++20+ compatibility.
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING 1
+
+#include "fmt/format.h"
+
 #include "FileSystem.hpp"
 
 #include <algorithm>
 #include <cstring>
 
 #include "Log.hpp"
-#include "fmt/format.h"
+
 
 #define  LLDBG_LOG_FILE_VERBOSE 0
 

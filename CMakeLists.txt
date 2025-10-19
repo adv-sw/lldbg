@@ -108,6 +108,10 @@ add_definitions(-DLLDBG_ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets/")
 target_include_directories(lldbgui_lib PUBLIC "${CMAKE_SOURCE_DIR}/src/")
 target_include_directories(lldbgui PUBLIC "${CMAKE_SOURCE_DIR}/src/")
 
+
+target_include_directories(lldbgui PUBLIC  "Z:/dev_public/lldbg/third_party/glew-2.1.0/include")
+target_include_directories(lldbgui_lib PUBLIC  "Z:/dev_public/lldbg/third_party/glew-2.1.0/include")
+
 target_compile_definitions(lldbgui_lib PUBLIC IMGUI_DEFINE_MATH_OPERATORS
                                               GLFW_INCLUDE_NONE)
 

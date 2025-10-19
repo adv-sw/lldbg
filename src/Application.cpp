@@ -1,14 +1,18 @@
+
+// TODO: Upgrade fmt v9  to fmt v11.0+ replaced with std::span for C++20+ compatibility.
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING 1
+
 // Optional sanitizer to simplify debugging of wasmtime client code.
 #define LLDBG_FILTER_WASMTIME   1
 
 // Silence low priorty warnings
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#include "fmt/format.h"
 #include "Application.h"
 #include "Defer.hpp"
 #include "Log.hpp"
 #include "StringBuffer.hpp"
-#include "fmt/format.h"
 
 #if LLDBG_FILTER_WASMTIME
 #define ENABLE_REGISTERS 0 
@@ -991,7 +995,7 @@ static void draw_console(Application &app)
             ImGui::SameLine();
 
             static char input_buf[2048];
-            if (ImGui::InputText("", input_buf, 2048, command_input_flags,
+            if (ImGui::InputText("cmd", input_buf, 2048, command_input_flags,
                                  command_input_callback)) 
             {
                 run_lldb_command(app, input_buf);
@@ -1433,7 +1437,6 @@ void Display_Known_Type(lldb::SBValue &param)
     const char *param_name = param.GetName();
     const char *param_type = param.GetDisplayTypeName();
 
-
    ImGui::TextUnformatted(param_name);
    ImGui::NextColumn();
    ImGui::TextUnformatted(param_type);
@@ -1452,7 +1455,10 @@ void Display_Known_Type(lldb::SBValue &param)
       if (!formatted_value.empty())
          formatted_value.append("\t");
 
-      formatted_value.append(field.GetValue());
+      auto value = field.GetValue();
+      
+      if (value)
+         formatted_value.append(value);
    }
 
    if (!formatted_value.empty())
@@ -2230,7 +2236,7 @@ void Application::Handle_Events()
                             // https://lldb.llvm.org/cpp_reference/classlldb_1_1SBThread.html#af284261156e100f8d63704162f19ba76
 
 
-                            assert(th.GetStopReasonDataCount(); >= 2);
+                            assert(th.GetStopReasonDataCount() >= 2);
                             lldb::break_id_t breakpoint_id = (lldb::break_id_t) th.GetStopReasonDataAtIndex(0);
                             lldb::SBBreakpoint breakpoint =
                                 target->FindBreakpointByID(breakpoint_id);

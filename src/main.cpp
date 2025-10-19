@@ -1,3 +1,5 @@
+#define _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING 1
+
 #include <fstream>
 #include <iostream>
 #include <string>
